@@ -4,6 +4,8 @@ This scanner assesses your AWS Account for compliance with the [CIS Benchmark](h
 
 An example output file is included at [report.html](report.html)
 
+Downloads are in the [bin/](bin/) directory.
+
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License. The link to the license terms can be found at https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
 **This scanner currently only assesses US-EAST-1 Region.  It also features very little error checking or recovery, and works through checks linearly.**
