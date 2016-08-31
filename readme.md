@@ -20,3 +20,5 @@ This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAl
 Please feel free to open issues (and include any output/stack trace), or submit PRs.
 
 Finally, this was a project designed to help me learn the Go language, so, sorry if the code makes your eyes bleed, I'm sure it's highly non-idiomatic.
+
+For more info, contact the author @ adam[at]stigian.com
