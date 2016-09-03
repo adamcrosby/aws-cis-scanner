@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"html/template"
 	"os"
 
@@ -23,12 +25,26 @@ import (
 func main() {
 	//todo: determine which regions to run, for now just do commercial us-east
 	//iam.New(session.New(), &aws.Config{Region: aws.String("us-east-1")}) call style
+	var regionPtr string
+	const (
+		defaultRegion   = "us-east-1"
+		regionFlagUsage = "AWS Region in shorthand format.  Default is \"us-east-1\"."
+	)
+	flag.StringVar(&regionPtr, "region", defaultRegion, regionFlagUsage)
+	flag.StringVar(&regionPtr, "r", defaultRegion, regionFlagUsage+" (shorthand)")
+	flag.Parse()
+
 	sess, err := session.NewSession()
+	if regionPtr == defaultRegion {
+		fmt.Println("No region specified, defaulting to region: ", regionPtr)
+	}
+
 	if err != nil {
 		panic(err)
 	}
 	status := benchmark.Status{}
-	IAM := iam.New(sess)
+
+	IAM := iam.New(sess, &aws.Config{Region: aws.String(regionPtr)})
 
 	awsAccounts := accounts.GetAccounts(IAM)
 	awsPasswordPolicy := accounts.GetPasswordPolicy(IAM)
@@ -36,14 +52,14 @@ func main() {
 	status = benchmark.DoIAMChecks(status, awsAccounts, awsPasswordPolicy)
 
 	// Setup for the Logging section of checks (2.1 - 2.8)
-	CT := cloudtrail.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	s3Svc := s3.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	cf := configservice.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	kmsSvc := kms.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	cwlogs := cloudwatchlogs.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	cw := cloudwatch.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	snsSvc := sns.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-	ec2Svc := ec2.New(sess, &aws.Config{Region: aws.String("us-east-1")})
+	CT := cloudtrail.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	s3Svc := s3.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	cf := configservice.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	kmsSvc := kms.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	cwlogs := cloudwatchlogs.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	cw := cloudwatch.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	snsSvc := sns.New(sess, &aws.Config{Region: aws.String(regionPtr)})
+	ec2Svc := ec2.New(sess, &aws.Config{Region: aws.String(regionPtr)})
 
 	status = benchmark.LoggingChecks(kmsSvc, cf, s3Svc, CT, status)
 	status = benchmark.MonitoringChecks(snsSvc, cw, cwlogs, CT, status)
