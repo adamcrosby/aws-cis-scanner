@@ -28,7 +28,7 @@ func main() {
 	var regionPtr string
 	const (
 		defaultRegion   = "us-east-1"
-		regionFlagUsage = "AWS Region in shorthand format.  Default is \"us-east-1\"."
+		regionFlagUsage = "AWS Region in standard shorthand format (eg: 'us-east-1' or 'us-west-2').  Default is \"us-east-1\"."
 	)
 	flag.StringVar(&regionPtr, "region", defaultRegion, regionFlagUsage)
 	flag.StringVar(&regionPtr, "r", defaultRegion, regionFlagUsage+" (shorthand)")
