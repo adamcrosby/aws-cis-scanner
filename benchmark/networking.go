@@ -14,15 +14,22 @@ const port3389Ingress = "Name=ip-permission.from-port,Values=3389 Name=ip-permis
 DoNetworkChecks runs the network checks from Section 4 of the benchmark
 */
 func DoNetworkChecks(ec2Svc *ec2.EC2, s Status) Status {
-	s.Finding4_1 = checkSinglePortOpenToWorld(ec2Svc, "22")
-	s.Finding4_2 = checkSinglePortOpenToWorld(ec2Svc, "3389")
+	// Only run this check if it hasn't failed already
+	if s.Finding4_1 {
+		s.Finding4_1 = checkSinglePortOpenToWorld(ec2Svc, "22")
+	}
+	// Only run this check if it hasn't failed already
+	if s.Finding4_2 {
+		s.Finding4_2 = checkSinglePortOpenToWorld(ec2Svc, "3389")
+	}
+
 	s.Finding4_3 = checkFlowLogs(ec2Svc)
 	s.Finding4_4 = restrictDefaultSG(ec2Svc)
 	return s
 }
 
 func checkSinglePortOpenToWorld(ec2Svc *ec2.EC2, portNum string) bool {
-	resp := false // default to fail
+	resp := true // default to pass
 
 	ipFrom := ec2.Filter{
 		Name:   aws.String("ip-permission.to-port"),
@@ -42,9 +49,9 @@ func checkSinglePortOpenToWorld(ec2Svc *ec2.EC2, portNum string) bool {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	if len(sgs.SecurityGroups) == 0 {
-		resp = true // No SGs have port 22 open to the world, so check passes
-	} // otherwise, resp stays false, check fails
+	if len(sgs.SecurityGroups) > 0 {
+		resp = true // At least one SG has port 22 open to the world, so check passes
+	} // otherwise, resp stays true, check passes
 	return resp
 }
 

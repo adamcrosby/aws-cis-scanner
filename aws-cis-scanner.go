@@ -58,9 +58,7 @@ func main() {
 
 	status := benchmark.Status{}
 	for i := range regionsList {
-		fmt.Println("Region is: ", regionsList[i])
 		conf := aws.Config{Region: aws.String(regionsList[i])}
-		fmt.Printf("Conf says: %+v \n", conf)
 		status = checkRegion(status, sess, conf)
 	}
 
