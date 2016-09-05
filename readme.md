@@ -13,9 +13,12 @@ The scanner will use your ~/.aws/credentials and/or ~/.aws/config files for acce
 
 It will also respect environment variables/etc - it is built with the AWS SDK, so all of that should work.
 Examples:
-`$aws-cis-scanner > report.html`
+
+`username@host$ aws-cis-scanner > report.html`
+
 or
-`$aws-cis-scanner -r us-gov-west-1 > report.html`
+
+`username@host$ aws-cis-scanner -r us-gov-west-1 > report.html`
 
 ## Legal
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License. The link to the license terms can be found at https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
