@@ -21,7 +21,7 @@ or
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License. The link to the license terms can be found at https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
 ## Notes
-**It also features very little error checking or recovery, and works through checks linearly.**
+**This scanner currently features very little error checking or recovery, and works through checks linearly.**
 
 Please feel free to open issues (and include any output/stack trace), or submit PRs.
 
