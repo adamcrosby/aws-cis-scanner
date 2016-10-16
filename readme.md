@@ -8,6 +8,9 @@ An example output file is included at [report.html](report.html)
 
 Downloads are in the [bin/](bin/) directory.
 
+Examples:
+![Screenshot](screenshot.png)
+
 ## Usage
 The scanner will use your ~/.aws/credentials and/or ~/.aws/config files for access keys automatically.
 
