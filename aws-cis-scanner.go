@@ -26,28 +26,26 @@ import (
 func main() {
 	var regionPtr string
 	const (
-		defaultRegion   = regions.USEast1
+		defaultRegion   = regions.AllRegions
 		regionFlagUsage = "AWS Region in standard shorthand format (eg: 'us-east-1' or 'us-west-2').  Default is \"us-east-1\"."
 	)
 	flag.StringVar(&regionPtr, "region", defaultRegion, regionFlagUsage)
 	flag.StringVar(&regionPtr, "r", defaultRegion, regionFlagUsage+" (shorthand)")
 	flag.Parse()
 
+	var regionsList []string
 	// if region is govcloud or china, special handling:
 	if regionPtr == regions.CNNorth1 {
-		fmt.Println("Isolated Regions not yet supported.")
+		fmt.Println("Isolated Regions (CN) not yet supported.")
+		fmt.Println("If you need this support, please open a github issue.")
 		os.Exit(1)
 	}
-
-	// figure out the list of regions to iterate over
-	var regionsList []string
 	if regionPtr == regions.GovCloud {
 		regionsList = regions.GovRegions
-
-	} else {
-
+	}
+	// default case when run without a -r
+	if regionPtr == regions.AllRegions {
 		regionsList = regions.CommercialRegions
-
 	}
 
 	// Create a new session

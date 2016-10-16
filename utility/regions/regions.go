@@ -27,11 +27,12 @@ const (
 	USWest1 = "us-west-1"
 	//USWest2 is the Oregon
 	USWest2 = "us-west-2"
+	//AllRegions is to signify all regions to be used in commercial sense
+	AllRegions = "all-regions"
 )
 
 // CommercialRegions is an array of region IDs for iteration for non-govcloud, non-CN region usage
-//var CommercialRegions = []string{APNorthEast1, APNorthEast2, APSouth1, APSouthEast1, APSouthEast2, EUCentral1, EUWest1, SAEast1, USEast1, USWest1, USWest2}
-var CommercialRegions = []string{USEast1}
+var CommercialRegions = []string{APNorthEast1, APNorthEast2, APSouth1, APSouthEast1, APSouthEast2, EUCentral1, EUWest1, SAEast1, USEast1, USWest1, USWest2}
 
 // GovRegions is an array of region IDs for iteration for GovCloud usage
 var GovRegions = []string{GovCloud}
