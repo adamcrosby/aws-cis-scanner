@@ -23,6 +23,38 @@ or
 
 `username@host$ aws-cis-scanner -r us-gov-west-1 > report.html`
 
+## Permissions Required
+
+This scanner requires the following (read only) API permissions:
+###API Calls Used:
+###IAM
+  * iam.GenerateCredentialReport
+  * iam.GetCredentialReport
+  * iam.GetAccountPasswordPolicy
+  * iam.ListUserPolicies
+  * iam.ListAttachedUserPolicies
+###Cloud Trail
+  * ct.DescribeTrails
+  * ct.GetTrailStatus
+###S3
+  * s3.GetBucketAcl
+  * s3.GetBucketPolicy
+  * s3.GetBucketLogging
+###Config
+  * cs.DescribeConfigurationRecorders
+###KMS
+  * kms.ListKeys
+  * kms.GetKeyRotationStatus
+###Cloudwatch Logs
+  * cwlogs.DescribeMetricFilters
+###SNS
+  * sns.ListSubscriptionsByTopic
+###Cloud Watch
+  * cw.DescribeAlarmsForMetric
+###EC2
+  * ec2.DescribeSecurityGroups
+  * ec2.DescribeFlowLogs
+
 ## Legal
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License. The link to the license terms can be found at https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
