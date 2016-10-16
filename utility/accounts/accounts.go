@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
-
-//"github.com/adamcrosby/aws-cis-scanner/benchmark"
 
 // Account holds account information retrieved from IAM for a single account
 type Account map[string]string
@@ -123,7 +122,7 @@ func GetPasswordPolicy(IAM *iam.IAM) iam.PasswordPolicy {
 UserPoliciesExist determines if any user policies exist
 Check 1.15
 */
-func UserPoliciesExist(a []Account, IAM *iam.IAM) bool {
+func UserPoliciesExist(a []Account, IAM *iam.IAM) string {
 	resp := true // default to pass, and only overide it on inspection below
 	for i := range a {
 		// get policies for each ARN
@@ -134,8 +133,11 @@ func UserPoliciesExist(a []Account, IAM *iam.IAM) bool {
 		resp = checkInlinePolicies(a[i], IAM)
 		resp = checkManagedPolicies(a[i], IAM)
 	}
+	if resp {
+		return findings.FindingClosed
+	}
+	return findings.FindingOpen
 
-	return resp
 }
 
 func checkInlinePolicies(a Account, IAM *iam.IAM) bool {

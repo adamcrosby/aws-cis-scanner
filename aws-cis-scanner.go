@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/adamcrosby/aws-cis-scanner/benchmark"
-	"github.com/adamcrosby/aws-cis-scanner/utility/accounts"
+	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/adamcrosby/aws-cis-scanner/utility/regions"
 	"github.com/adamcrosby/aws-cis-scanner/utility/report"
 	"github.com/aws/aws-sdk-go/aws"
@@ -56,16 +56,17 @@ func main() {
 		panic(err)
 	}
 
-	status := benchmark.Status{}
+	benchmark := make(findings.Checks, findings.FindingsInCISBenchmark)
+
 	for i := range regionsList {
 		conf := aws.Config{Region: aws.String(regionsList[i])}
-		status = checkRegion(status, sess, conf)
+		benchmark = checkRegion(benchmark, sess, conf)
 	}
 
-	printTemplate(status)
+	printTemplate(benchmark)
 }
 
-func printTemplate(status benchmark.Status) {
+func printTemplate(checks findings.Checks) {
 	templateString := report.ReportTemplateHTML
 
 	tmpl := template.New("report template")
@@ -75,13 +76,13 @@ func printTemplate(status benchmark.Status) {
 	if err != nil {
 		panic(err)
 	}
-	err = tmpl.Execute(os.Stdout, status)
+	err = tmpl.Execute(os.Stdout, checks)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func checkRegion(status benchmark.Status, sess *session.Session, conf aws.Config) benchmark.Status {
+func checkRegion(checks findings.Checks, sess *session.Session, conf aws.Config) findings.Checks {
 
 	iamSvc := iam.New(sess, &conf)
 	ctSvc := cloudtrail.New(sess, &conf)
@@ -93,15 +94,13 @@ func checkRegion(status benchmark.Status, sess *session.Session, conf aws.Config
 	snsSvc := sns.New(sess, &conf)
 	ec2Svc := ec2.New(sess, &conf)
 
-	awsAccounts := accounts.GetAccounts(iamSvc)
-	awsPasswordPolicy := accounts.GetPasswordPolicy(iamSvc)
-	status.Finding1_15 = accounts.UserPoliciesExist(awsAccounts, iamSvc)
-	status = benchmark.DoIAMChecks(status, awsAccounts, awsPasswordPolicy)
+	checks = benchmark.DoIAMChecks(iamSvc, checks)
 
 	// Setup for the Logging section of checks (2.1 - 2.8)
 
-	status = benchmark.LoggingChecks(kmsSvc, cfSvc, s3Svc, ctSvc, status)
-	status = benchmark.MonitoringChecks(snsSvc, cwSvc, cwlogsSvc, ctSvc, status)
-	status = benchmark.DoNetworkChecks(ec2Svc, status)
-	return status
+	checks = benchmark.LoggingChecks(kmsSvc, cfSvc, s3Svc, ctSvc, checks)
+	checks = benchmark.MonitoringChecks(snsSvc, cwSvc, cwlogsSvc, ctSvc, checks)
+	checks = benchmark.DoNetworkChecks(ec2Svc, checks)
+
+	return checks
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
@@ -35,7 +36,7 @@ type S3ACLentry struct {
 /*
 LoggingChecks checks if cloudtrails are configured properly on this region
 */
-func LoggingChecks(kmsSvc *kms.KMS, configSvc *configservice.ConfigService, s3Svc *s3.S3, ct *cloudtrail.CloudTrail, s Status) Status {
+func LoggingChecks(kmsSvc *kms.KMS, configSvc *configservice.ConfigService, s3Svc *s3.S3, ct *cloudtrail.CloudTrail, checks findings.Checks) findings.Checks {
 
 	params := &cloudtrail.DescribeTrailsInput{
 		IncludeShadowTrails: aws.Bool(true),
@@ -46,43 +47,46 @@ func LoggingChecks(kmsSvc *kms.KMS, configSvc *configservice.ConfigService, s3Sv
 	if err != nil {
 		panic(err)
 	}
-	s.Finding2_1 = multiRegionEnabled(trails.TrailList)
-	s.Finding2_2 = logValidationEnabled(trails.TrailList)
-	s.Finding2_3 = ensureS3LogsBucketNotPublic(trails.TrailList, s3Svc)
-	s.Finding2_4 = cloudWatchIntegration(trails.TrailList, ct)
-	s.Finding2_5 = ensureConfigEnabled(configSvc)
-	s.Finding2_6 = ensureBucketLoggingEnabled(trails.TrailList, s3Svc)
-	s.Finding2_7 = ensureLogsEncrypted(trails.TrailList)
-	s.Finding2_8 = ensureCMKRotationEnabled(kmsSvc)
+	checks["Finding 2.1"] = multiRegionEnabled(trails.TrailList)
+	checks["Finding 2.2"] = logValidationEnabled(trails.TrailList)
+	checks["Finding 2.3"] = ensureS3LogsBucketNotPublic(trails.TrailList, s3Svc)
+	checks["Finding 2.4"] = cloudWatchIntegration(trails.TrailList, ct)
+	checks["Finding 2.5"] = ensureConfigEnabled(configSvc)
+	checks["Finding 2.6"] = ensureBucketLoggingEnabled(trails.TrailList, s3Svc)
+	checks["Finding 2.7"] = ensureLogsEncrypted(trails.TrailList)
+	checks["Finding 2.8"] = ensureCMKRotationEnabled(kmsSvc)
 
-	return s
+	return checks
 }
 
-func multiRegionEnabled(trails []*cloudtrail.Trail) bool {
-	resp := false
+func multiRegionEnabled(trails []*cloudtrail.Trail) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.1", Description: Finding2_1Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 	for i := range trails {
 		if *trails[i].IsMultiRegionTrail {
-			resp = true
+			resp.Status.Open = findings.FindingClosed
+		} else {
+			resp.Notes["User"] = "No cloud trail is multi-region"
 		}
 	}
 	return resp
 }
 
-func logValidationEnabled(trails []*cloudtrail.Trail) bool {
-	resp := false
+func logValidationEnabled(trails []*cloudtrail.Trail) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.2", Description: Finding2_2Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 	for i := range trails {
 		if *trails[i].LogFileValidationEnabled {
-			resp = true
+			resp.Status.Open = findings.FindingClosed
 		} else {
 			// have to reset if ANY trail is false the check fails
-			resp = false
+			resp.Status.Open = findings.FindingOpen
+			resp.Notes["User"] = fmt.Sprintf("%s does not have Log file validation enabled.", *trails[i].Name)
 		}
 	}
 	return resp
 }
 
-func cloudWatchIntegration(trails []*cloudtrail.Trail, ct *cloudtrail.CloudTrail) bool {
-	resp := false
+func cloudWatchIntegration(trails []*cloudtrail.Trail, ct *cloudtrail.CloudTrail) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.4", Description: Finding2_4Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 
 	var trailARN *string
 	for i := range trails {
@@ -104,43 +108,53 @@ func cloudWatchIntegration(trails []*cloudtrail.Trail, ct *cloudtrail.CloudTrail
 		}
 		// Ensure LatestCloudWatchLogsDeliveryTime is less than 1 day ago to pass checek
 		if isActiveInLastDay(trailstatus.LatestCloudWatchLogsDeliveryTime) {
-			resp = true
+			resp.Status.Open = findings.FindingClosed
 		} else {
-			resp = false
+			resp.Status.Open = findings.FindingOpen
+			resp.Notes["User"] = fmt.Sprintf("%s does not have a delivery time in the last day", *trailARN)
 		}
 
 	}
 	return resp
 }
 
-func ensureLogsEncrypted(trails []*cloudtrail.Trail) bool {
-	resp := false
+/*
+* Finding 2.7 - Ensures log files are encrypted with KMS in cloud trail
+ */
+func ensureLogsEncrypted(trails []*cloudtrail.Trail) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.7", Description: Finding2_7Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 	for i := range trails {
 		if trails[i].KmsKeyId != nil {
 			// Ensure struct member is present
 			if *trails[i].KmsKeyId != "" {
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			}
 		} else {
 			// have to reset if ANY trail is false the check fails
-			resp = false
+			resp.Status.Open = findings.FindingOpen
 		}
 	}
 	return resp
 }
 
-func ensureS3LogsBucketNotPublic(trails []*cloudtrail.Trail, s3Svc *s3.S3) bool {
-	resp := true // only override if we find permissions: absence of perms == pass
+func ensureS3LogsBucketNotPublic(trails []*cloudtrail.Trail, s3Svc *s3.S3) findings.Finding {
+	// Default to finding Closed, only override if we find permissions: absence of perms == pass (default ACL is deny)
+	resp := findings.Finding{Name: "Finding 2.3", Description: Finding2_3Txt, Status: findings.Status{Checked: true, Open: findings.FindingClosed}}
 
+	acls := true
 	for i := range trails {
 		if trails[i].S3BucketName != nil {
 			/* S3 Bucket ACL checks
 			 */
-			resp = s3BucketACLChecks(s3Svc, *trails[i].S3BucketName)
+			acls = s3BucketACLChecks(s3Svc, *trails[i].S3BucketName)
 			/* S3 Buck Policy Checks
 			 */
-			resp = s3BucketPolicyChecks(s3Svc, *trails[i].S3BucketName)
+			acls = s3BucketPolicyChecks(s3Svc, *trails[i].S3BucketName)
 		}
+	}
+	if !acls {
+		// Only change to Open if we found something
+		resp.Status.Open = findings.FindingOpen
 	}
 	return resp
 }
@@ -202,8 +216,8 @@ func s3BucketPolicyChecks(s3Svc *s3.S3, s3BucketName string) bool {
 	return resp
 }
 
-func ensureBucketLoggingEnabled(trails []*cloudtrail.Trail, s3Svc *s3.S3) bool {
-	resp := false
+func ensureBucketLoggingEnabled(trails []*cloudtrail.Trail, s3Svc *s3.S3) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.6", Description: Finding2_6Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 	for i := range trails {
 		if trails[i].S3BucketName != nil {
 			params := &s3.GetBucketLoggingInput{
@@ -211,22 +225,19 @@ func ensureBucketLoggingEnabled(trails []*cloudtrail.Trail, s3Svc *s3.S3) bool {
 			}
 			loggingStatus, err := s3Svc.GetBucketLogging(params)
 			if err != nil {
-				// Print the error, cast err to awserr.Error to get the Code and
-				// Message from an error.
-				fmt.Println("error: ", err.Error())
-				continue
+				panic(err)
 			}
 			if loggingStatus.LoggingEnabled != nil {
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			}
 		}
 	}
 	return resp
 }
 
-func ensureConfigEnabled(cs *configservice.ConfigService) bool {
+func ensureConfigEnabled(cs *configservice.ConfigService) findings.Finding {
 	// TODO: Make multi-region enabled
-	resp := false
+	resp := findings.Finding{Name: "Finding 2.5", Description: Finding2_5Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 	params := &configservice.DescribeConfigurationRecordersInput{}
 
 	cr, err := cs.DescribeConfigurationRecorders(params)
@@ -235,14 +246,14 @@ func ensureConfigEnabled(cs *configservice.ConfigService) bool {
 	}
 	for i := range cr.ConfigurationRecorders {
 		if *cr.ConfigurationRecorders[i].RecordingGroup.AllSupported && *cr.ConfigurationRecorders[i].RecordingGroup.IncludeGlobalResourceTypes {
-			resp = true
+			resp.Status.Open = findings.FindingClosed
 		}
 	}
 	return resp
 }
 
-func ensureCMKRotationEnabled(kmsSvc *kms.KMS) bool {
-	resp := false
+func ensureCMKRotationEnabled(kmsSvc *kms.KMS) findings.Finding {
+	resp := findings.Finding{Name: "Finding 2.8", Description: Finding2_8Txt, Status: findings.Status{Checked: true, Open: findings.FindingOpen}, Notes: make(map[string]string)}
 
 	listparams := &kms.ListKeysInput{}
 	keys, err := kmsSvc.ListKeys(listparams)
@@ -256,7 +267,10 @@ func ensureCMKRotationEnabled(kmsSvc *kms.KMS) bool {
 		status, _ := kmsSvc.GetKeyRotationStatus(params)
 
 		if status.KeyRotationEnabled != nil {
-			resp = *status.KeyRotationEnabled
+			isenabled := *status.KeyRotationEnabled
+			if isenabled {
+				resp.Status.Open = findings.FindingClosed
+			}
 		}
 
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -31,7 +32,7 @@ var FilterPatterns = [14]string{
 /*
 MonitoringChecks runs the checks from 3.1-3.16 of the CIS benchmark
 */
-func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudwatchlogs.CloudWatchLogs, ct *cloudtrail.CloudTrail, s Status) Status {
+func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudwatchlogs.CloudWatchLogs, ct *cloudtrail.CloudTrail, checks findings.Checks) findings.Checks {
 
 	params := &cloudtrail.DescribeTrailsInput{
 		IncludeShadowTrails: aws.Bool(true),
@@ -43,25 +44,95 @@ func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudw
 		panic(err)
 	}
 
-	s.Finding3_1 = filterAndAlarmExist(FilterPatterns[0], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_2 = filterAndAlarmExist(FilterPatterns[1], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_3 = filterAndAlarmExist(FilterPatterns[2], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_4 = filterAndAlarmExist(FilterPatterns[3], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_5 = filterAndAlarmExist(FilterPatterns[4], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_6 = filterAndAlarmExist(FilterPatterns[5], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_7 = filterAndAlarmExist(FilterPatterns[6], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_8 = filterAndAlarmExist(FilterPatterns[7], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_9 = filterAndAlarmExist(FilterPatterns[8], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_10 = filterAndAlarmExist(FilterPatterns[9], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_11 = filterAndAlarmExist(FilterPatterns[10], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_12 = filterAndAlarmExist(FilterPatterns[11], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_13 = filterAndAlarmExist(FilterPatterns[12], trails.TrailList, cwlogs, cw, snsSvc)
-	s.Finding3_14 = filterAndAlarmExist(FilterPatterns[13], trails.TrailList, cwlogs, cw, snsSvc)
+	checks["Finding 3.1"] = findings.Finding{
+		Name:        "Finding 3.1",
+		Description: Finding3_1Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[0], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.2"] = findings.Finding{
+		Name:        "Finding 3.2",
+		Description: Finding3_2Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[1], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.3"] = findings.Finding{
+		Name:        "Finding 3.3",
+		Description: Finding3_3Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[2], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.4"] = findings.Finding{
+		Name:        "Finding 3.4",
+		Description: Finding3_4Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[3], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.5"] = findings.Finding{
+		Name:        "Finding 3.5",
+		Description: Finding3_5Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[4], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.6"] = findings.Finding{
+		Name:        "Finding 3.6",
+		Description: Finding3_6Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[5], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.7"] = findings.Finding{
+		Name:        "Finding 3.7",
+		Description: Finding3_7Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[6], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.8"] = findings.Finding{
+		Name:        "Finding 3.8",
+		Description: Finding3_8Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[7], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.9"] = findings.Finding{
+		Name:        "Finding 3.9",
+		Description: Finding3_9Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[8], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.10"] = findings.Finding{
+		Name:        "Finding 3.10",
+		Description: Finding3_10Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[9], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.11"] = findings.Finding{
+		Name:        "Finding 3.11",
+		Description: Finding3_11Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[10], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.12"] = findings.Finding{
+		Name:        "Finding 3.12",
+		Description: Finding3_12Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[11], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.13"] = findings.Finding{
+		Name:        "Finding 3.13",
+		Description: Finding3_13Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[12], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
+	checks["Finding 3.14"] = findings.Finding{
+		Name:        "Finding 3.14",
+		Description: Finding3_14Txt,
+		Status: findings.Status{
+			Open:    filterAndAlarmExist(FilterPatterns[13], trails.TrailList, cwlogs, cw, snsSvc),
+			Checked: true}}
 
-	return s
+	return checks
 }
 
-func filterAndAlarmExist(pattern string, trails []*cloudtrail.Trail, cwlogs *cloudwatchlogs.CloudWatchLogs, cw *cloudwatch.CloudWatch, snsSvc *sns.SNS) bool {
+func filterAndAlarmExist(pattern string, trails []*cloudtrail.Trail, cwlogs *cloudwatchlogs.CloudWatchLogs, cw *cloudwatch.CloudWatch, snsSvc *sns.SNS) string {
 	resp := false
 
 	// Get list of all Cloud Trails
@@ -91,7 +162,11 @@ func filterAndAlarmExist(pattern string, trails []*cloudtrail.Trail, cwlogs *clo
 		}
 	}
 
-	return resp
+	if resp {
+		return findings.FindingClosed
+	}
+	return findings.FindingOpen
+
 }
 
 func atLeastOneSubscriber(snsSvc *sns.SNS, alertARN *string) bool {

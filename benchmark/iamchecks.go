@@ -1,12 +1,15 @@
 package benchmark
 
 import (
+	"fmt"
+
 	"github.com/adamcrosby/aws-cis-scanner/utility/accounts"
+	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
 // Findings dictionary to hold findings
-type Findings map[string]bool
+//type Findings map[string]bool
 
 const credentialReportTrue = "true"
 const credentialReportFalse = "false"
@@ -20,124 +23,204 @@ const finding1_9Val = 14
 /*
 DoIAMChecks runs the checks for section 1 of the CIS Benchmark and returns a single findings map
 */
-func DoIAMChecks(s Status, a []accounts.Account, pp iam.PasswordPolicy) Status {
-	s = ratePasswordPolicy(pp, s)
-	s.Finding1_1 = avoidRootAccountUse(a)
-	s.Finding1_2 = iamMFAEnabled(a)
-	s.Finding1_3 = areCredentialsDisabledAfter90Days(a)
-	s.Finding1_4 = areCredentialsRotatedWithin90Days(a)
-	s.Finding1_12 = ensureNoRootAccessKey(a)
-	s.Finding1_13 = ensureRootAccountMFAEnabled(a)
+func DoIAMChecks(iamSvc *iam.IAM, checks findings.Checks) findings.Checks {
 
-	return s
+	a := accounts.GetAccounts(iamSvc)
+	pp := accounts.GetPasswordPolicy(iamSvc)
+
+	checks["Finding 1.1"] = avoidRootAccountUse(a)
+	checks["Finding 1.2"] = iamMFAEnabled(a)
+	checks["Finding 1.3"] = areCredentialsDisabledAfter90Days(a)
+	checks["Finding 1.4"] = areCredentialsRotatedWithin90Days(a)
+
+	if pp != (iam.PasswordPolicy{}) {
+
+		checks["Finding 1.5"] = findings.Finding{
+			Name:        "Finding 1.5",
+			Description: Finding1_5Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyUpperCase(pp)}}
+
+		checks["Finding 1.6"] = findings.Finding{
+			Name:        "Finding 1.6",
+			Description: Finding1_6Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyLowerCase(pp)}}
+
+		checks["Finding 1.7"] = findings.Finding{
+			Name:        "Finding 1.7",
+			Description: Finding1_7Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicySymbol(pp)}}
+
+		checks["Finding 1.8"] = findings.Finding{
+			Name:        "Finding 1.8",
+			Description: Finding1_8Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyNumber(pp)}}
+
+		checks["Finding 1.9"] = findings.Finding{
+			Name:        "Finding 1.9",
+			Description: Finding1_9Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyMinLength(pp)}}
+
+		checks["Finding 1.10"] = findings.Finding{
+			Name:        "Finding 1.10",
+			Description: Finding1_10Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyPreventReuse(pp)}}
+
+		checks["Finding 1.11"] = findings.Finding{
+			Name:        "Finding 1.11",
+			Description: Finding1_11Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    passPolicyMaxAge(pp)}}
+
+	} else {
+		checks["Finding 1.5"] = findings.Finding{
+			Name:        "Finding 1.5",
+			Description: Finding1_5Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.6"] = findings.Finding{
+			Name:        "Finding 1.6",
+			Description: Finding1_6Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.7"] = findings.Finding{
+			Name:        "Finding 1.7",
+			Description: Finding1_7Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.8"] = findings.Finding{
+			Name:        "Finding 1.8",
+			Description: Finding1_8Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.9"] = findings.Finding{
+			Name:        "Finding 1.9",
+			Description: Finding1_9Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.10"] = findings.Finding{
+			Name:        "Finding 1.10",
+			Description: Finding1_10Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+		checks["Finding 1.11"] = findings.Finding{
+			Name:        "Finding 1.11",
+			Description: Finding1_11Txt,
+			Status: findings.Status{
+				Checked: true,
+				Open:    findings.FindingOpen}}
+	}
+	checks["Finding 1.12"] = ensureNoRootAccessKey(a)
+	checks["Finding 1.13"] = ensureRootAccountMFAEnabled(a)
+
+	checks["Finding 1.15"] = findings.Finding{
+		Name:        "Finding 1.15",
+		Description: Finding1_15Txt,
+		Status: findings.Status{
+			Checked: true,
+			Open:    accounts.UserPoliciesExist(a, iamSvc)}}
+	return checks
 }
 
 /*
 Check 1.5 - # of upper case characters
 */
-func passPolicyUpperCase(pp iam.PasswordPolicy) bool {
+func passPolicyUpperCase(pp iam.PasswordPolicy) string {
 	if *pp.RequireUppercaseCharacters {
-		return true
+		return findings.FindingClosed
 	}
-	return false
+	return findings.FindingOpen
 
 }
 
 /*
 Check 1.6 - # of lower case characters
 */
-func passPolicyLowerCase(pp iam.PasswordPolicy) bool {
+func passPolicyLowerCase(pp iam.PasswordPolicy) string {
 	if *pp.RequireLowercaseCharacters {
-		return true
+		return findings.FindingClosed
 	}
-	return false
+	return findings.FindingOpen
 }
 
 /*
 Check 1.7 - # of symbol characters
 */
-func passPolicySymbol(pp iam.PasswordPolicy) bool {
+func passPolicySymbol(pp iam.PasswordPolicy) string {
 	if *pp.RequireSymbols {
-		return true
+		return findings.FindingClosed
 	}
-	return false
+	return findings.FindingOpen
 }
 
 /*
 Check 1.8 - # of digit/number characters
 */
-func passPolicyNumber(pp iam.PasswordPolicy) bool {
+func passPolicyNumber(pp iam.PasswordPolicy) string {
 	if *pp.RequireNumbers {
-		return true
+		return findings.FindingClosed
 	}
-	return false
+	return findings.FindingOpen
 }
 
 /*
 Check 1.9 - minimum password length
 */
-func passPolicyMinLength(pp iam.PasswordPolicy) bool {
+func passPolicyMinLength(pp iam.PasswordPolicy) string {
 	if *pp.MinimumPasswordLength >= finding1_9Val {
-		return true
+		return findings.FindingClosed
 	}
-	return false
+	return findings.FindingOpen
 }
 
 /*
 Check 1.10 - password reuse prevention
 */
-func passPolicyPreventReuse(pp iam.PasswordPolicy) bool {
+func passPolicyPreventReuse(pp iam.PasswordPolicy) string {
 	if pp.PasswordReusePrevention != nil {
 		if *pp.PasswordReusePrevention != 0 {
-			return true
+			return findings.FindingClosed
 		}
 
 	}
-	return false
+	return findings.FindingOpen
 }
 
 /*
 Check 1.11 - max password age
 */
-func passPolicyMaxAge(pp iam.PasswordPolicy) bool {
+func passPolicyMaxAge(pp iam.PasswordPolicy) string {
 	if *pp.ExpirePasswords && (*pp.MaxPasswordAge > finding1_11Val) {
-		return true
+		return findings.FindingClosed
 	}
-	return false
-}
-
-/*
-RatePasswordPolicy calls the individual functions to figure out status
-*/
-func ratePasswordPolicy(pp iam.PasswordPolicy, findings Status) Status {
-
-	if pp != (iam.PasswordPolicy{}) {
-		findings.Finding1_5 = passPolicyUpperCase(pp)
-		findings.Finding1_6 = passPolicyLowerCase(pp)
-		findings.Finding1_7 = passPolicySymbol(pp)
-		findings.Finding1_8 = passPolicyNumber(pp)
-		findings.Finding1_9 = passPolicyMinLength(pp)
-		findings.Finding1_10 = passPolicyPreventReuse(pp)
-		findings.Finding1_11 = passPolicyMaxAge(pp)
-	} else {
-		findings.Finding1_5 = false
-		findings.Finding1_6 = false
-		findings.Finding1_7 = false
-		findings.Finding1_8 = false
-		findings.Finding1_9 = false
-		findings.Finding1_10 = false
-		findings.Finding1_11 = false
-	}
-
-	return findings
+	return findings.FindingOpen
 }
 
 /*
 Check 1.2 - Ensure MFA is enabled for all iam users with passwords
 */
-func iamMFAEnabled(a []accounts.Account) bool {
+func iamMFAEnabled(a []accounts.Account) findings.Finding {
 	// Iterate over each account in the list
-	var resp bool
+	resp := findings.Finding{Name: "Finding 1.2", Description: Finding1_2Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
+
 	for i := range a {
 		//fmt.Printf("Processing username: %s\n", a[i]["user"])
 		// exclude <root_user> here, as it is not an IAM user
@@ -152,10 +235,11 @@ func iamMFAEnabled(a []accounts.Account) bool {
 			*/
 			if a[i]["password_enabled"] == credentialReportTrue && a[i]["mfa_active"] == credentialReportFalse {
 				//fmt.Printf("User: %s has password but no MFA", a[i]["user"])
-				resp = false
+				resp.Status.Open = findings.FindingOpen
+				resp.Notes["User"] = fmt.Sprintf("Account %s has password but no MFA", a[i]["user"])
 			} else {
 				//fmt.Printf("User: %s has no password, or has password and MFA\n", a[i]["user"])
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			}
 		}
 
@@ -166,22 +250,23 @@ func iamMFAEnabled(a []accounts.Account) bool {
 /*
 Check 1.12 - ensure no root access key exists
 */
-func ensureNoRootAccessKey(a []accounts.Account) bool {
+func ensureNoRootAccessKey(a []accounts.Account) findings.Finding {
 	// Iterate over each account in the list
-	var resp bool
+	resp := findings.Finding{Name: "Finding 1.12", Description: Finding1_12Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
 	for i := range a {
 		//fmt.Printf("Processing username: %s\n", a[i]["user"])
 		// only check <root_user> here
 		if a[i]["user"] == rootAccountName {
-			//fmt.Println("Root account, chekcing")
+
 			if a[i]["access_key_1_active"] == credentialReportTrue || a[i]["access_key_2_active"] == credentialReportTrue {
 				//fmt.Println("Root account has an active access key")
 				// resp is false because this check FAILS if either of these conditions are true
-				resp = false
+				resp.Notes["User"] = fmt.Sprintf("Root Account has an active access key.")
+				resp.Status.Open = findings.FindingOpen
 			} else {
 				// Root does not have an active access key
 				//fmt.Println("Root account does not have an active access key")
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			}
 		} else {
 			// skip to next user if not <root_user> here
@@ -194,19 +279,20 @@ func ensureNoRootAccessKey(a []accounts.Account) bool {
 /*
 Check 1.13 ensure MFA enabled for root account
 */
-func ensureRootAccountMFAEnabled(a []accounts.Account) bool {
+func ensureRootAccountMFAEnabled(a []accounts.Account) findings.Finding {
 	// Iterate over each account in the list
-	var resp bool
+	resp := findings.Finding{Name: "Finding 1.13", Description: Finding1_13Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
 	for i := range a {
 		// only check <root_user> here
 		if a[i]["user"] == rootAccountName {
 			//fmt.Println("Root account, chekcing")
 			if a[i]["mfa_active"] == credentialReportTrue {
 				// // Root has an MFA token, check passes
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			} else {
 				// Root does not have an MFA token, check fails
-				resp = false
+				resp.Status.Open = findings.FindingOpen
+				resp.Notes["User"] = "Root user does not have an MFA token associated."
 			}
 		} else {
 			// skip to next user if not <root_user> here
@@ -218,10 +304,11 @@ func ensureRootAccountMFAEnabled(a []accounts.Account) bool {
 
 /*
 Check 1.1 avoid use of root accounts
-We use a heuristic (not really, we just see if you've used root in last 30 days)
+'Avoid' isn't defined, so just check to see if you've used root in last 30 days)
 */
-func avoidRootAccountUse(a []accounts.Account) bool {
-	var resp bool
+func avoidRootAccountUse(a []accounts.Account) findings.Finding {
+	resp := findings.Finding{Name: "Finding 1.1", Description: Finding1_1Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
+
 	for i := range a {
 		// only check <root_user> here
 		if a[i]["user"] == rootAccountName {
@@ -230,22 +317,25 @@ func avoidRootAccountUse(a []accounts.Account) bool {
 				isActiveInDays(a[i]["password_last_used"], days30) {
 				// If any of the 3 access methods have been used in the last month, fail the check
 
-				resp = false
+				resp.Status.Open = findings.FindingOpen
+				resp.Notes["User"] = "Root account or it's access keys used in last 30 days."
 			} else {
 				// None of the methods have been used in last 30 days, check passes
 
-				resp = true
+				resp.Status.Open = findings.FindingClosed
 			}
 		} else {
 			// skip to next user if not <root_user> here
 			continue
 		}
 	}
+
 	return resp
 }
 
-func areCredentialsDisabledAfter90Days(a []accounts.Account) bool {
-	var overallresp = true
+func areCredentialsDisabledAfter90Days(a []accounts.Account) findings.Finding {
+	overallresp := findings.Finding{Name: "Finding 1.3", Description: Finding1_3Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
+	overallresp.Status.Open = findings.FindingClosed // Default to closed, as absence == pass for this check
 	for i := range a {
 		var resp = true
 		if a[i]["access_key_1_active"] == credentialReportTrue {
@@ -253,6 +343,7 @@ func areCredentialsDisabledAfter90Days(a []accounts.Account) bool {
 				// credential hasn't been used within 90  days but is enabled
 				// so fail the check
 				resp = false
+				overallresp.Notes["User"] = fmt.Sprintf("Account %s Access Key 1 unused in 90 days: last used on %s", a[i]["user"], a[i]["access_key_1_last_used_date"])
 			}
 		}
 		if a[i]["access_key_2_active"] == credentialReportTrue {
@@ -260,33 +351,36 @@ func areCredentialsDisabledAfter90Days(a []accounts.Account) bool {
 				// credential hasn't been used within 90  days but is enabled
 				// so fail the check
 				resp = false
+				overallresp.Notes["User"] = fmt.Sprintf("Account %s Access Key 2 unused in 90 days: last used on %s", a[i]["user"], a[i]["access_key_2_last_used_date"])
 			}
 		}
 		if a[i]["password_enabled"] == credentialReportTrue {
 			if !isActiveInDays(a[i]["password_last_used"], days90) {
 				// credential hasn't been used within 90  days but is enabled
 				// so fail the check
+				overallresp.Notes["User"] = fmt.Sprintf("Account %s has password, but unused in 90 days: last used on %s", a[i]["user"], a[i]["password_last_used"])
 				resp = false
 			}
 		}
 		if resp == false {
 			// If any of the three credential checks fails for this account
 			// the entire check fails
-			// TODO: figure out how to pass back the name of the account that fails (maybe via log?)
-			overallresp = false
+			overallresp.Status.Open = findings.FindingOpen
 		}
 	}
 	return overallresp
 }
 
-func areCredentialsRotatedWithin90Days(a []accounts.Account) bool {
-	var overallresp = true
+func areCredentialsRotatedWithin90Days(a []accounts.Account) findings.Finding {
+	overallresp := findings.Finding{Name: "Finding 1.4", Description: Finding1_4Txt, Status: findings.Status{Checked: true}, Notes: make(map[string]string)}
+	overallresp.Status.Open = findings.FindingClosed // Default to closed, as absence == pass for this check
 	for i := range a {
 		var resp = true
 		if a[i]["access_key_1_active"] == credentialReportTrue {
 			if !isActiveInDays(a[i]["access_key_1_last_rotated"], days90) {
 				// credential hasn't been used within 90  days but is enabled
 				// so fail the check
+				overallresp.Notes["User"] = fmt.Sprintf("Account %s Access Key 1 active, but older than 90 days: last rotated on %s", a[i]["user"], a[i]["access_key_1_last_rotated"])
 				resp = false
 			}
 		}
@@ -294,6 +388,7 @@ func areCredentialsRotatedWithin90Days(a []accounts.Account) bool {
 			if !isActiveInDays(a[i]["access_key_2_last_rotated"], days90) {
 				// credential hasn't been used within 90  days but is enabled
 				// so fail the check
+				overallresp.Notes["User"] = fmt.Sprintf("Account %s Access Key 2 active, but older than 90 days: last rotated on %s", a[i]["user"], a[i]["access_key_2_last_rotated"])
 				resp = false
 			}
 		}
@@ -301,7 +396,7 @@ func areCredentialsRotatedWithin90Days(a []accounts.Account) bool {
 			// If any of the two credential checks fails for this account
 			// the entire check fails
 			// TODO: figure out how to pass back the name of the account that fails (maybe via log?)
-			overallresp = false
+			overallresp.Status.Open = findings.FindingOpen
 		}
 	}
 
