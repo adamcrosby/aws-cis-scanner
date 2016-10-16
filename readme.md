@@ -33,24 +33,32 @@ This scanner requires the following (read only) API permissions:
   * iam.GetAccountPasswordPolicy
   * iam.ListUserPolicies
   * iam.ListAttachedUserPolicies
+
 ###Cloud Trail
   * ct.DescribeTrails
   * ct.GetTrailStatus
+
 ###S3
   * s3.GetBucketAcl
   * s3.GetBucketPolicy
   * s3.GetBucketLogging
+
 ###Config
   * cs.DescribeConfigurationRecorders
+
 ###KMS
   * kms.ListKeys
   * kms.GetKeyRotationStatus
+
 ###Cloudwatch Logs
   * cwlogs.DescribeMetricFilters
+
 ###SNS
   * sns.ListSubscriptionsByTopic
+
 ###Cloud Watch
   * cw.DescribeAlarmsForMetric
+
 ###EC2
   * ec2.DescribeSecurityGroups
   * ec2.DescribeFlowLogs
