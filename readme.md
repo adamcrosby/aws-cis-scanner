@@ -2,7 +2,7 @@
 
 This scanner assesses your AWS Account for compliance with the [CIS Benchmark](https://d0.awsstatic.com/whitepapers/compliance/AWS_CIS_Foundations_Benchmark.pdf) for AWS.  The content is using the Benchmark Version 1.0.0 - 02-29-2016.
 
-Use the `-r` or `-region` flags to tell the scanner which region to use (default is `us-east-1`).  All commercial regions (as of September 5, 2016) are supported.  AWS US GovCloud (`us-gov-west-1`) region is supported as well.  AWS China (Beijing - `cn-north-1`) is NOT yet supported (I have no way to test in CN region, and it's missing a few of the required services, such as MFA support).  AWS C2S region is also unsupported (due to lack of support in SDK).
+Use the `-r` or `-region` flags to tell the scanner which region to use for non-commercial / generally available regions (such as GovCloud or China).  All commercial regions (as of September 5, 2016) are supported.  AWS US GovCloud (`us-gov-west-1`) region is supported as well.  AWS China (Beijing - `cn-north-1`) is NOT yet supported (I have no way to test in CN region, and it's missing a few of the required services, such as MFA support).  AWS C2S region is also unsupported (due to lack of support in SDK).
 
 An example output file is included at [report.html](report.html)
 
