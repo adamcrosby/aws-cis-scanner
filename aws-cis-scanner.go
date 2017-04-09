@@ -34,18 +34,20 @@ func main() {
 	flag.Parse()
 
 	var regionsList []string
-	// if region is govcloud or china, special handling:
-	if regionPtr == regions.CNNorth1 {
+
+	switch regionPtr {
+	case regions.CNNorth1:
+		// if region is govcloud or china, special handling:
 		fmt.Println("Isolated Regions (CN) not yet supported.")
 		fmt.Println("If you need this support, please open a github issue.")
 		os.Exit(1)
-	}
-	if regionPtr == regions.GovCloud {
+	case regions.GovCloud:
 		regionsList = regions.GovRegions
-	}
-	// default case when run without a -r
-	if regionPtr == regions.AllRegions {
+	case regions.AllRegions:
 		regionsList = regions.CommercialRegions
+	default:
+		// a region was actually specified in the config, so use it.
+		regionsList = []string{regionPtr}
 	}
 
 	// Create a new session
