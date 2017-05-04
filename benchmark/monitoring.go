@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
+	"github.com/adamcrosby/aws-cis-scanner/utility/services"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -32,13 +33,13 @@ var FilterPatterns = [14]string{
 /*
 MonitoringChecks runs the checks from 3.1-3.16 of the CIS benchmark
 */
-func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudwatchlogs.CloudWatchLogs, ct *cloudtrail.CloudTrail, checks findings.Checks) findings.Checks {
-
+func MonitoringChecks(services services.AWSServices, checks findings.Checks) findings.Checks {
+	//func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudwatchlogs.CloudWatchLogs, ct *cloudtrail.CloudTrail, checks findings.Checks) findings.Checks {
 	params := &cloudtrail.DescribeTrailsInput{
 		IncludeShadowTrails: aws.Bool(true),
 		TrailNameList:       []*string{},
 	}
-	trails, err := ct.DescribeTrails(params)
+	trails, err := services.CloudTrail.DescribeTrails(params)
 
 	if err != nil {
 		panic(err)
@@ -48,85 +49,85 @@ func MonitoringChecks(snsSvc *sns.SNS, cw *cloudwatch.CloudWatch, cwlogs *cloudw
 		Name:        "Finding 3.1",
 		Description: Finding3_1Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[0], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[0], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.2"] = findings.Finding{
 		Name:        "Finding 3.2",
 		Description: Finding3_2Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[1], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[1], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.3"] = findings.Finding{
 		Name:        "Finding 3.3",
 		Description: Finding3_3Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[2], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[2], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.4"] = findings.Finding{
 		Name:        "Finding 3.4",
 		Description: Finding3_4Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[3], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[3], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.5"] = findings.Finding{
 		Name:        "Finding 3.5",
 		Description: Finding3_5Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[4], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[4], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.6"] = findings.Finding{
 		Name:        "Finding 3.6",
 		Description: Finding3_6Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[5], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[5], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.7"] = findings.Finding{
 		Name:        "Finding 3.7",
 		Description: Finding3_7Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[6], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[6], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.8"] = findings.Finding{
 		Name:        "Finding 3.8",
 		Description: Finding3_8Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[7], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[7], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.9"] = findings.Finding{
 		Name:        "Finding 3.9",
 		Description: Finding3_9Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[8], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[8], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.10"] = findings.Finding{
 		Name:        "Finding 3.10",
 		Description: Finding3_10Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[9], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[9], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.11"] = findings.Finding{
 		Name:        "Finding 3.11",
 		Description: Finding3_11Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[10], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[10], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.12"] = findings.Finding{
 		Name:        "Finding 3.12",
 		Description: Finding3_12Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[11], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[11], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.13"] = findings.Finding{
 		Name:        "Finding 3.13",
 		Description: Finding3_13Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[12], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[12], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 	checks["Finding 3.14"] = findings.Finding{
 		Name:        "Finding 3.14",
 		Description: Finding3_14Txt,
 		Status: findings.Status{
-			Open:    filterAndAlarmExist(FilterPatterns[13], trails.TrailList, cwlogs, cw, snsSvc),
+			Open:    filterAndAlarmExist(FilterPatterns[13], trails.TrailList, services.CloudWatchLogs, services.CloudWatch, services.SNS),
 			Checked: true}}
 
 	return checks

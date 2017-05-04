@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
+	"github.com/adamcrosby/aws-cis-scanner/utility/services"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
@@ -14,13 +15,14 @@ const port3389Ingress = "Name=ip-permission.from-port,Values=3389 Name=ip-permis
 /*
 DoNetworkChecks runs the network checks from Section 4 of the benchmark
 */
-func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
+func DoNetworkChecks(services services.AWSServices, checks findings.Checks) findings.Checks {
+	//func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
 	// Do some funky legwork here as this is called multiple times for each region.  ANY
 	// failure in ANY region fails the check entirely, so ensure it's not accidentally reset
 	if chk := checks["Finding 4.1"].Status.Checked; chk {
 		if checks["Finding 4.1"].Status.Open == findings.FindingClosed {
 			// Finding has been checked but is not already marked open: leave it as such.
-			open, sgs := checkSinglePortOpenToWorld(ec2Svc, "22")
+			open, sgs := checkSinglePortOpenToWorld(services.EC2, "22")
 			checks["Finding 4.1"] = findings.Finding{
 				Name:        "Finding 4.1",
 				Description: Finding4_1Txt,
@@ -32,7 +34,7 @@ func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
 		} //else the finding is unknown or open, just leave it.
 	} else {
 		// the check hasn't been run, so just run it
-		open, sgs := checkSinglePortOpenToWorld(ec2Svc, "22")
+		open, sgs := checkSinglePortOpenToWorld(services.EC2, "22")
 		checks["Finding 4.1"] = findings.Finding{
 			Name:        "Finding 4.1",
 			Description: Finding4_1Txt,
@@ -45,7 +47,7 @@ func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
 	// Redo the same check to ensure 4.2 isn't reset either.
 	if chk := checks["Finding 4.2"].Status.Checked; chk {
 		if checks["Finding 4.2"].Status.Open == findings.FindingClosed {
-			open, sgs := checkSinglePortOpenToWorld(ec2Svc, "3389")
+			open, sgs := checkSinglePortOpenToWorld(services.EC2, "3389")
 			checks["Finding 4.2"] = findings.Finding{
 				Name:        "Finding 4.2",
 				Description: Finding4_2Txt,
@@ -56,7 +58,7 @@ func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
 			checks["Finding 4.2"].Notes["User"] = sgs
 		}
 	} else {
-		open, sgs := checkSinglePortOpenToWorld(ec2Svc, "3389")
+		open, sgs := checkSinglePortOpenToWorld(services.EC2, "3389")
 		checks["Finding 4.2"] = findings.Finding{
 			Name:        "Finding 4.2",
 			Description: Finding4_2Txt,
@@ -71,14 +73,14 @@ func DoNetworkChecks(ec2Svc *ec2.EC2, checks findings.Checks) findings.Checks {
 		Name:        "Finding 4.3",
 		Description: Finding4_3Txt,
 		Status: findings.Status{
-			Open:    checkFlowLogs(ec2Svc),
+			Open:    checkFlowLogs(services.EC2),
 			Checked: true}}
 
 	checks["Finding 4.4"] = findings.Finding{
 		Name:        "Finding 4.4",
 		Description: Finding4_4Txt,
 		Status: findings.Status{
-			Open:    restrictDefaultSG(ec2Svc),
+			Open:    restrictDefaultSG(services.EC2),
 			Checked: true}}
 
 	return checks

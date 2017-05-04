@@ -10,7 +10,10 @@ import (
 	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
 	"github.com/adamcrosby/aws-cis-scanner/utility/regions"
 	"github.com/adamcrosby/aws-cis-scanner/utility/report"
+	"github.com/adamcrosby/aws-cis-scanner/utility/services"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -25,12 +28,22 @@ import (
 
 func main() {
 	var regionPtr string
+	var arn string
+	var externalID string
+
 	const (
+		defaultARN      = ""
+		arnUsage        = "The ARN of the role you need to assume"
+		defaultExtID    = ""
+		extIDUsage      = "The ExternalID constraint, if applicable for the role you need to assume"
+		region          = "us-east-1"
 		defaultRegion   = regions.AllRegions
 		regionFlagUsage = "AWS Region in standard shorthand format (eg: 'us-east-1' or 'us-west-2').  Default is \"us-east-1\"."
 	)
 	flag.StringVar(&regionPtr, "region", defaultRegion, regionFlagUsage)
 	flag.StringVar(&regionPtr, "r", defaultRegion, regionFlagUsage+" (shorthand)")
+	flag.StringVar(&arn, "arn", defaultARN, arnUsage)
+	flag.StringVar(&externalID, "extid", defaultExtID, extIDUsage)
 	flag.Parse()
 
 	var regionsList []string
@@ -51,18 +64,32 @@ func main() {
 	}
 
 	// Create a new session
-	sess, err := session.NewSession()
-	if err != nil {
-		panic(err)
-	}
+	sess := session.Must(session.NewSession())
 
 	benchmark := make(findings.Checks, findings.FindingsInCISBenchmark)
 
 	for i := range regionsList {
-		conf := aws.Config{Region: aws.String(regionsList[i])}
-		benchmark = checkRegion(benchmark, sess, conf)
-	}
 
+		// Create services pointers for either option
+		primaryConf := aws.Config{Region: aws.String(regionsList[i])}
+		services := services.AWSServices{}
+		services.IAM = iam.New(sess, &primaryConf)
+		services.CloudTrail = cloudtrail.New(sess, &primaryConf)
+		services.S3Primary = s3.New(sess, &primaryConf)
+		services.Config = configservice.New(sess, &primaryConf)
+		services.KMS = kms.New(sess, &primaryConf)
+		services.CloudWatch = cloudwatch.New(sess, &primaryConf)
+		services.CloudWatchLogs = cloudwatchlogs.New(sess, &primaryConf)
+		services.SNS = sns.New(sess, &primaryConf)
+		services.EC2 = ec2.New(sess, &primaryConf)
+		if arn != "" {
+			// Alt ARN is used
+			altConf := createConfig(arn, externalID, regionsList[i], sess)
+			services.S3Alt = s3.New(sess, &altConf)
+		}
+
+		benchmark = checkRegion(benchmark, services)
+	}
 	printTemplate(benchmark)
 }
 
@@ -82,25 +109,46 @@ func printTemplate(checks findings.Checks) {
 	}
 }
 
-func checkRegion(checks findings.Checks, sess *session.Session, conf aws.Config) findings.Checks {
+func checkRegion(checks findings.Checks, services services.AWSServices) findings.Checks {
 
-	iamSvc := iam.New(sess, &conf)
-	ctSvc := cloudtrail.New(sess, &conf)
-	s3Svc := s3.New(sess, &conf)
-	cfSvc := configservice.New(sess, &conf)
-	kmsSvc := kms.New(sess, &conf)
-	cwlogsSvc := cloudwatchlogs.New(sess, &conf)
-	cwSvc := cloudwatch.New(sess, &conf)
-	snsSvc := sns.New(sess, &conf)
-	ec2Svc := ec2.New(sess, &conf)
+	/** iamSvc := services.IAM
+	ctSvc := services.CloudTrail
+	s3Svc := services.S3Primary
+	cfSvc := services.Config
+	kmsSvc := services.KMS
+	cwlogsSvc := services.CloudWatchLogs
+	cwSvc := services.CloudWatch
+	snsSvc := services.SNS
+	ec2Svc := services.EC2
+	altS3Svc := services.S3Alt
+	**/
 
-	checks = benchmark.DoIAMChecks(iamSvc, checks)
+	checks = benchmark.DoIAMChecks(services, checks)
 
 	// Setup for the Logging section of checks (2.1 - 2.8)
 
-	checks = benchmark.LoggingChecks(kmsSvc, cfSvc, s3Svc, ctSvc, checks)
-	checks = benchmark.MonitoringChecks(snsSvc, cwSvc, cwlogsSvc, ctSvc, checks)
-	checks = benchmark.DoNetworkChecks(ec2Svc, checks)
+	checks = benchmark.LoggingChecks(services, checks)
+	checks = benchmark.MonitoringChecks(services, checks)
+	checks = benchmark.DoNetworkChecks(services, checks)
 
 	return checks
+}
+
+func createConfig(arn string, externalID string, region string, sess *session.Session) aws.Config {
+
+	conf := aws.Config{Region: aws.String(region)}
+	if arn != "" {
+		// if ARN flag is passed in, we need to be able ot assume role here
+		var creds *credentials.Credentials
+		if externalID != "" {
+			// If externalID flag is passed, we need to include it in credentials struct
+			creds = stscreds.NewCredentials(sess, arn, func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = &externalID
+			})
+		} else {
+			creds = stscreds.NewCredentials(sess, arn, func(p *stscreds.AssumeRoleProvider) {})
+		}
+		conf.Credentials = creds
+	}
+	return conf
 }

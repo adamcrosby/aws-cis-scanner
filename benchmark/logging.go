@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
+	"github.com/adamcrosby/aws-cis-scanner/utility/services"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
@@ -36,25 +37,31 @@ type S3ACLentry struct {
 /*
 LoggingChecks checks if cloudtrails are configured properly on this region
 */
-func LoggingChecks(kmsSvc *kms.KMS, configSvc *configservice.ConfigService, s3Svc *s3.S3, ct *cloudtrail.CloudTrail, checks findings.Checks) findings.Checks {
+func LoggingChecks(services services.AWSServices, checks findings.Checks) findings.Checks {
+	//func LoggingChecks(kmsSvc *kms.KMS, configSvc *configservice.ConfigService, s3Svc *s3.S3, ct *cloudtrail.CloudTrail, checks findings.Checks, alts3Svc *s3.S3) findings.Checks {
 
 	params := &cloudtrail.DescribeTrailsInput{
 		IncludeShadowTrails: aws.Bool(true),
 		TrailNameList:       []*string{},
 	}
-	trails, err := ct.DescribeTrails(params)
+	trails, err := services.CloudTrail.DescribeTrails(params)
 
 	if err != nil {
 		panic(err)
 	}
 	checks["Finding 2.1"] = multiRegionEnabled(trails.TrailList)
 	checks["Finding 2.2"] = logValidationEnabled(trails.TrailList)
-	checks["Finding 2.3"] = ensureS3LogsBucketNotPublic(trails.TrailList, s3Svc)
-	checks["Finding 2.4"] = cloudWatchIntegration(trails.TrailList, ct)
-	checks["Finding 2.5"] = ensureConfigEnabled(configSvc)
-	checks["Finding 2.6"] = ensureBucketLoggingEnabled(trails.TrailList, s3Svc)
+	if services.S3Alt != nil {
+		checks["Finding 2.3"] = ensureS3LogsBucketNotPublic(trails.TrailList, services.S3Alt)
+	} else {
+		checks["Finding 2.3"] = ensureS3LogsBucketNotPublic(trails.TrailList, services.S3Primary)
+	}
+
+	checks["Finding 2.4"] = cloudWatchIntegration(trails.TrailList, services.CloudTrail)
+	checks["Finding 2.5"] = ensureConfigEnabled(services.Config)
+	checks["Finding 2.6"] = ensureBucketLoggingEnabled(trails.TrailList, services.S3Primary)
 	checks["Finding 2.7"] = ensureLogsEncrypted(trails.TrailList)
-	checks["Finding 2.8"] = ensureCMKRotationEnabled(kmsSvc)
+	checks["Finding 2.8"] = ensureCMKRotationEnabled(services.KMS)
 
 	return checks
 }

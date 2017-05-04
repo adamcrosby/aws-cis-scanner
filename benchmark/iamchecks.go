@@ -5,6 +5,7 @@ import (
 
 	"github.com/adamcrosby/aws-cis-scanner/utility/accounts"
 	"github.com/adamcrosby/aws-cis-scanner/utility/findings"
+	"github.com/adamcrosby/aws-cis-scanner/utility/services"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
@@ -23,10 +24,9 @@ const finding1_9Val = 14
 /*
 DoIAMChecks runs the checks for section 1 of the CIS Benchmark and returns a single findings map
 */
-func DoIAMChecks(iamSvc *iam.IAM, checks findings.Checks) findings.Checks {
-
-	a := accounts.GetAccounts(iamSvc)
-	pp := accounts.GetPasswordPolicy(iamSvc)
+func DoIAMChecks(services services.AWSServices, checks findings.Checks) findings.Checks {
+	a := accounts.GetAccounts(services.IAM)
+	pp := accounts.GetPasswordPolicy(services.IAM)
 
 	checks["Finding 1.1"] = avoidRootAccountUse(a)
 	checks["Finding 1.2"] = iamMFAEnabled(a)
@@ -136,7 +136,7 @@ func DoIAMChecks(iamSvc *iam.IAM, checks findings.Checks) findings.Checks {
 		Description: Finding1_15Txt,
 		Status: findings.Status{
 			Checked: true,
-			Open:    accounts.UserPoliciesExist(a, iamSvc)}}
+			Open:    accounts.UserPoliciesExist(a, services.IAM)}}
 	return checks
 }
 
